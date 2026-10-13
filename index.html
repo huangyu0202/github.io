@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>黃珮瑜的課堂成果｜AI數值方法</title>
+<style>
+:root{
+  --bg:#eef1f5; --paper:#fbfcfd; --ink:#1b2842; --muted:#5d6b85; --line:#cfd6e2; --mark:#ffe36e; --link:#1f4fd8;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#121826;--paper:#1a2336;--ink:#e8edf7;--muted:#9aa8c4;--line:#2d3a55;--mark:#6b5a12;--link:#8fb0ff}
+}
+:root[data-theme="dark"]{--bg:#121826;--paper:#1a2336;--ink:#e8edf7;--muted:#9aa8c4;--line:#2d3a55;--mark:#6b5a12;--link:#8fb0ff}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;color:var(--ink);background:var(--bg);font:16px/1.75 "PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:48px 20px 80px}
+h1,h2{font-family:"Noto Serif TC","Songti TC","PMingLiU",serif;line-height:1.35;margin:0}
+h1{font-size:2.1rem}
+h1 span{background:linear-gradient(transparent 58%,var(--mark) 58%)}
+.id{color:var(--muted);margin:6px 0 28px;font-size:.95rem}
+.intro{color:var(--muted);margin:12px 0 32px;max-width:34em}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:28px}
+.chip{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:4px 14px;font:inherit;font-size:.9rem;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+input[type=search]{flex:1 1 160px;min-width:0;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:6px 12px;font:inherit}
+:focus-visible{outline:3px solid var(--link);outline-offset:2px}
+.count{color:var(--muted);font-size:.9rem;margin:0 0 12px}
+.list{list-style:none;margin:0;padding:0 0 0 22px;border-left:2px solid var(--line)}
+.item{position:relative;margin-bottom:14px}
+.item::before{content:"";position:absolute;left:-29px;top:20px;width:12px;height:12px;border-radius:50%;background:var(--bg);border:2px solid var(--ink)}
+details{background:var(--paper);border:1px solid var(--line);border-radius:10px}
+summary{list-style:none;cursor:pointer;padding:14px 18px;display:grid;gap:2px}
+summary::-webkit-details-marker{display:none}
+.meta{color:var(--muted);font-size:.85rem}
+.title{font-family:"Noto Serif TC","Songti TC","PMingLiU",serif;font-size:1.15rem;font-weight:700}
+.sum{color:var(--muted);font-size:.95rem}
+details[open] summary{border-bottom:1px dashed var(--line)}
+.body{padding:6px 18px 16px}
+.body h2{font-size:1rem;margin:14px 0 2px}
+.body p{margin:0}
+.links{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:16px}
+.links a{color:var(--link)}
+.empty{color:var(--muted);padding:24px 0}
+footer{margin-top:48px;color:var(--muted);font-size:.85rem}
+@media (max-width:520px){h1{font-size:1.7rem}.wrap{padding-top:32px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1><span id="siteName">黃珮瑜</span>的課堂成果</h1>
+  <p class="id" id="siteId"></p>
+
+  <div class="tools">
+    <span id="chips" role="group" aria-label="依課程篩選"></span>
+    <input type="search" id="q" placeholder="搜尋作業標題或內容" aria-label="搜尋作業">
+  </div>
+  <p class="count" id="count" aria-live="polite"></p>
+  <ol class="list" id="list"></ol>
+
+  <footer>最後更新：<span id="updated"></span></footer>
+</main>
+
+<script>
+/* ============ 只需要修改這一區 ============ */
+const SITE = {
+  name: "黃珮瑜",
+  id: "413210484",
+  course: "AI數值方法",
+  updated: "2026-10-13"
+};
+
+/* 每次有新作業，就複製一個 { ... }, 區塊貼在最上面。
+   links 可以放 Google 文件、簡報、YouTube、檔案等連結，沒有就留空 []。 */
+const ASSIGNMENTS = [];
+/* ========================================= */
+
+const $ = id => document.getElementById(id);
+let course = "全部";
+
+document.title = SITE.name + "的課堂成果";
+$("siteName").textContent = SITE.name;
+$("siteId").textContent = "學號 " + SITE.id + "　課程：" + SITE.course;
+$("updated").textContent = SITE.updated;
+
+function el(tag, cls, text){
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text) e.textContent = text;
+  return e;
+}
+
+function buildChips(){
+  const box = $("chips");
+  box.textContent = "";
+  const names = ["全部", ...new Set(ASSIGNMENTS.map(a => a.course))];
+  if (names.length <= 2) return;
+  names.forEach(n => {
+    const b = el("button", "chip", n);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(n === course));
+    b.addEventListener("click", () => { course = n; buildChips(); render(); });
+    box.append(b, " ");
+  });
+}
+
+function section(parent, label, text){
+  if (!text) return;
+  parent.append(el("h2", "", label), el("p", "", text));
+}
+
+function render(){
+  const kw = $("q").value.trim().toLowerCase();
+  const rows = ASSIGNMENTS.filter(a =>
+    (course === "全部" || a.course === course) &&
+    (!kw || [a.title, a.summary, a.process, a.reflection, a.course].join(" ").toLowerCase().includes(kw))
+  );
+  const list = $("list");
+  list.textContent = "";
+  if (!ASSIGNMENTS.length){
+    document.querySelector(".tools").hidden = true;
+    $("count").textContent = "";
+    list.append(el("li", "empty", "待上傳"));
+    return;
+  }
+  $("count").textContent = "共 " + rows.length + " 項作業";
+  if (!rows.length){
+    list.append(el("li", "empty", "沒有符合的作業。試試換個關鍵字，或選「全部」課程。"));
+    return;
+  }
+  rows.forEach(a => {
+    const li = el("li", "item");
+    const d = el("details");
+    const s = el("summary");
+    s.append(
+      el("span", "meta", "第 " + a.week + " 週　" + a.date + "　" + a.course),
+      el("span", "title", a.title),
+      el("span", "sum", a.summary)
+    );
+    const body = el("div", "body");
+    section(body, "製作過程", a.process);
+    section(body, "學習反思", a.reflection);
+    if (a.links && a.links.length){
+      const box = el("div", "links");
+      a.links.forEach(l => {
+        const link = el("a", "", l.label);
+        link.href = l.url;
+        link.target = "_blank";
+        link.rel = "noopener";
+        box.append(link);
+      });
+      body.append(box);
+    }
+    d.append(s, body);
+    li.append(d);
+    list.append(li);
+  });
+}
+
+$("q").addEventListener("input", render);
+buildChips();
+render();
+</script>
+</body>
+</html>
